@@ -2,6 +2,7 @@ import strutils
 import sequtils
 import tables
 import algorithm
+import random
 
 const file_name = "breast-cancer.data"
 
@@ -36,6 +37,7 @@ proc Uniq*(raw_frame:seq[seq[string]],col:int):Table[string,int]=
   return res
 
 proc AutoEnum*(raw_frame:seq[seq[string]],set_cols:seq[int]= @[]):frame{.discardable.}=
+  randomize()
   var res:frame
   var collumns:seq[int] = set_cols
   res.enumeration.setLen(raw_frame[0].len())
@@ -48,6 +50,15 @@ proc AutoEnum*(raw_frame:seq[seq[string]],set_cols:seq[int]= @[]):frame{.discard
     res.entries[ent].setLen(raw_frame[ent].len())
     for ind in 0..raw_frame[ent].high():
       res.entries[ent][ind] = res.enumeration[ind][raw_frame[ent][ind]]
+  res.entries.shuffle()
+  return res
+
+proc PrimeForLearning*(fr:var frame,prc:int):frame=
+  var res:frame
+  var len:int = int((prc / 100) * fr.entries.len().float)
+  res.enumeration = fr.enumeration
+  res.entries = fr.entries[len..fr.entries.high()]
+  fr.entries = fr.entries[0..len]
   return res
 
 if isMainModule:
