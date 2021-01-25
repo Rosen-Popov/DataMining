@@ -50,7 +50,8 @@ proc AutoEnum*(raw_frame:seq[seq[string]],set_cols:seq[int]= @[]):frame{.discard
     res.entries[ent].setLen(raw_frame[ent].len())
     for ind in 0..raw_frame[ent].high():
       res.entries[ent][ind] = res.enumeration[ind][raw_frame[ent][ind]]
-  res.entries.shuffle()
+  for i in 0..5:
+    res.entries.shuffle()
   return res
 
 proc PrimeForLearning*(fr:var frame,prc:int):frame=

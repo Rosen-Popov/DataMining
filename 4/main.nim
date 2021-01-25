@@ -3,12 +3,17 @@ import rdstdin
 import tables
 import sequtils
 
-const MAX_DEPTH =3
+const MAX_DEPTH = 8
 
 var player_O = 'O'
 var player_X = 'X'
 let empty = '-'
 var players:Table[bool,char]
+
+
+
+let WE_WIN_THIS:int = 1
+let WELL_GET_EM_NEXT_TIME:int = -1
 
 players[false] = player_O
 players[true] = player_X
@@ -86,6 +91,39 @@ proc nWins(board:string,pl:char):int=
     result = result + 1
   #echo result
   return result
+proc BoardValue(board:string):int=
+  var brd:seq[string] = @[board[0..2],board[3..5],board[6..8]]
+  if brd[0][0] == brd[1][1] and brd[0][0] == brd[2][2]:
+    if brd[0][0] == 'X':
+      return 10
+    elif brd[0][0] == '0':
+      return -10
+    else:
+      return 0
+  if brd[0][2] == brd[1][1] and brd[0][2] == brd[2][0]:
+    if brd[0][0] == 'X':
+      return 10
+    elif brd[0][0] == '0':
+      return -10
+    else:
+      return 0
+  for i in 0..2:
+    if brd[0][i] == brd[1][i] and brd[0][i] == brd[2][i]:
+      if brd[0][i] == 'X':
+        return 10
+      elif brd[0][i] == '0':
+        return -10
+      else:
+        return 0
+    if brd[i][0] == brd[i][1] and brd[i][0] == brd[i][2]:
+      if brd[i][0] == 'X':
+        return 10
+      elif brd[i][0] == '0':
+        return -10
+      else:
+        return 0
+
+   
 
 proc BitToString(state:Table[int,char]):string=
   var res:string="---------"
@@ -94,18 +132,17 @@ proc BitToString(state:Table[int,char]):string=
       res[i] = state[i]
   return res
 
+proc isfull(state:Table[int,char]):bool=
+  var board = BitToString(state)
+  if '-' in board:
+    return false
+  return true
+
+
 proc MinMax(depth:int,player:bool,state:Table[int,char],alpha,beta:int):int=
-  if depth == MAX_DEPTH:
-    return nWins(BitToString(state),players[player])
-  else:
-    if CheckIfWin(BitToString(state),players[player]):
-      if player:
-        return 9
-      return -1
-    if CheckIfWin(BitToString(state),players[not player]):
-      if not player:
-        return -1
-      return 9
+  
+  if isfull(state) or depth >= MAX_DEPTH:
+    
   if player:
     var tmp:int= high(int)
     var tmp_beta:int=beta
@@ -125,7 +162,7 @@ proc MinMax(depth:int,player:bool,state:Table[int,char],alpha,beta:int):int=
       if state.hasKey(possi) == false:
         var tmp_table = state
         tmp_table[possi] = players[player]
-        tmp = max(tmp, MinMax(depth+1,not player,tmp_table,alpha,beta))
+        tmp = max(tmp, MinMax(depth+1, player,tmp_table,alpha,beta))
         tmp_alpha = max(alpha,tmp)
         if beta <= tmp_alpha:
           break
@@ -133,14 +170,25 @@ proc MinMax(depth:int,player:bool,state:Table[int,char],alpha,beta:int):int=
 
 proc IsValidMove(state:Table[int,char],move:int):bool=
   return not state.hasKey(move)
+proc max_but_lower(res:seq[int],bound:int):int=
+  var goal = 0
+  for i in 0..res.high():
+    if res[i] > res[goal] and res[i] < bound:
+      goal = i
+  return goal
+
+proc min_but_bigger(res:seq[int],bound:int):int=
+  var goal = 0
+  for i in 0..res.high():
+    if res[i] < res[goal] and res[i] > bound:
+      goal = i
+  return goal
 
 proc ComputerMakeMove(state:var Table[int,char],pl:bool)=
   var resulto:seq[int]
   var best:int = -1
-  if pl:
-    resulto = @[10,10,10, 10,10,10, 10,10,10]
-  else:
-    resulto = @[-2,-2,-2,-2,-2,-2,-2,-2,-2]
+
+  resulto = repeat(0,9)
 
   block pp:
     if pl:
@@ -187,6 +235,7 @@ if isMainModule == true:
         assert(false)
       if CheckIfWin(BitToString(state),players[player_first]):
         echo players[player_first]," wins"
+        DisplayBoard(BitToString(state))
         assert(false)
       ComputerMakeMove(state,not player_first)
       DisplayBoard(BitToString(state))
@@ -197,6 +246,7 @@ if isMainModule == true:
       ComputerMakeMove(state,not player_first)
       if CheckIfWin(BitToString(state),players[not player_first]):
         echo players[not player_first]," wins"
+        DisplayBoard(BitToString(state))
         assert(false)
       DisplayBoard(BitToString(state))
       tr = readLineFromStdin("Your move[0~8] ",line)
@@ -208,4 +258,6 @@ if isMainModule == true:
         assert(false)
       if CheckIfWin(BitToString(state),players[player_first]):
         echo players[player_first]," wins"
+        DisplayBoard(BitToString(state))
         assert(false)
+  DisplayBoard(BitToString(state))

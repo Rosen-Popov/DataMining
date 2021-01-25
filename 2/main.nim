@@ -112,13 +112,13 @@ proc Print(s:var Board)=
           stdout.write('*')
         else:
           stdout.write('_')
-  stdout.write('\n')
+      stdout.write('\n')
 
 proc Solve(s:var Board): float {.discardable.}=
   if s.ifconflicts() == true:
     while true :
       var maxColumn = s.GetHihConfRow()
-      if maxColumn == - 1:
+      if maxColumn == -1:
         echo "kurec"
         break
       s.Move(maxColumn)

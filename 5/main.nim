@@ -31,8 +31,6 @@ const crime:int=14
 const duty_free_exports:int=15
 const export_administration_act_south_africa:int=16
 const ALL_TRAITS = 17
-const eps:float64= 0.00001
-const eps_prc:float64= 0.0000001
 
 let identifiers:seq[int] = @[
   party,
@@ -158,15 +156,13 @@ proc Check(set:seq[seq[senator]],ind:int):string=
   var dem:float
   var rep:float
   var metric:float64
-  
-
 
   for i in 0..set.high():
     if i == ind:
       continue
     for j in set[i].items():
       rep = mult(Splice(j,summary.rep_yes,summary.rep_no,summary.rep_abs))/summary.rep_yes[0]
-      dem = mult(Splice(j,summary.dem_yes,summary.dem_no,summary.rep_abs))/summary.dem_yes[0]
+      dem = mult(Splice(j,summary.dem_yes,summary.dem_no,summary.dem_abs))/summary.dem_yes[0]
       if dem < rep and j.repr[0] == Republican:
         inc(succ)
       if rep < dem and j.repr[0] == Democrat:
@@ -180,3 +176,4 @@ if isMainModule == true:
   var TrainingSets:seq[seq[senator]] = distribute(ReaData(source),10)
   for i in 0..TrainingSets.high():
     echo(i," ",Check(TrainingSets,i))
+

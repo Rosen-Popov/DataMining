@@ -6,12 +6,12 @@ import lists
 import strutils
 import sets
 import algorithm
+import heapqueue
+import random
 
+const FOUND:int = -1
+const NOT_FOUND:int = -2
 
-let FOUND = -1
-let NOT_FOUND = -2
-const FORWARD: int = 1
-const BACKWARD:int = -1
 const up:int     = 1
 const down:int   = 2
 const left:int   = 3
@@ -21,18 +21,29 @@ const isUsed    = 1
 const isInHist  = 2
 const isPossi   = 0
 
+
 var solution_state: seq[int]
 
-#===============================
 type
   MoveState = ref object
     move:int
     used:int
     state:seq[int]
+#  MoveStateTreeNode = ref object
+#    parent: MoveStateTreeNode
+#    children:seq[ MoveStateTreeNode]
+#    board_state:MoveState
+#    heur:int
+
   PossiChain = ref object
     states:seq[MoveState]
     n_states:int
     position:int
+
+#proc PosiChToTreeNode(parent:var MoveStateTreeNode,pos:PossiChain,heuristic:int)=
+#  parent.children = @[]
+#  for i in mitems(pos.):
+
 
 proc Get(nd: PossiChain):MoveState=
   if nd.position < nd.states.len():
@@ -42,9 +53,6 @@ proc Get(nd: PossiChain):MoveState=
 
 proc Next(nd:var PossiChain)=
   inc(nd.position)
-
-
-#func End(nd: PossiChain):bool = (nd.position < nd.states.states.high())
 
 proc RemoveFromHistory(nd: PossiChain, hist:var HashSet[seq[int]])=
   for i in items(nd.states):
@@ -136,21 +144,6 @@ proc gen_sol_state(size, zer_pos:int):seq[int]=
     res.add(0)
   solution_state = res
   return res
-#proc AddTo(store:var WeirdListSetQueThing,state:seq[int],move:int)=
-#  store.que.append(state)
-#  store.move_que.append(move)
-#
-#proc PopLast(store:var WeirdListSetQueThing)=
-#  store.que.remove(store.que.tail)
-#  store.move_que.remove(store.move_que.tail)
-#proc GetLast(store:WeirdListSetQueThing):pair=
-#  var tmp: pair
-#  tmp.brd= store.que.head.value
-#  tmp.mv= store.move_que.head.value
-#  return tmp
-#
-#proc WasAState(store: WeirdListSetQueThing,state:seq[int]):bool=
-#  return store.que.contains(state)
 
 proc PrintSquare(tbl: seq[int])=
   var root:int =int(sqrt(tbl.len().float))
@@ -182,62 +175,32 @@ type
     b_len:int
     board:seq[int]
     sol_state:seq[int]
+proc SumToInd(heu_chain:var seq[int],ind:int):int=
+  result = 0
+  for i in 0..ind:
+    result = heu_chain[i] + result
+  return result
 
-#proc MakeBoard(size:int, cfgs:seq[int] ,zero_pos:int):=
-#  var path:WeirdListSetQueThing
-#  path.que = initDoublyLinkedList[seq[int]]()
-#  path.que.append(cfgs)
-#  path.move_que = initDoublyLinkedList[int]()
-#  path.move_que.append(0)
-#  var res:Board
-#  res.path = path
-#  res.b_len = int(sqrt (size + 1).float)
-#  res.board = cfgs
-#  res.sol_state = gen_sol_state(size,zero_pos)
-#  solution_state = res.sol_state
+proc `<`(board1,board2:MoveState):bool= manhatan_distance(board1.state,solution_state) < manhatan_distance(board2.state,solution_state)
 
-
-#def dai_edna_cigara_te_ea_u_zwezdata(root,path,goal):
-#  bound = manhatan_distance(root,goal)
-#  while 1:
-#    t = search(path, 0, bound,goal)
-#      if t == FOUND:
-#        path.Show()
-#          return [path, bound]
-#      if t == INF:
-#        print("No Solution")
-#          return NOT_FOUND
-#      bound = t
-#
-proc sec(data:Board):seq[ PossiChain]{.discardable.}=
-
+proc sec(data:Board,bound:int,crnt_path:seq[PossiChain]):seq[PossiChain]{.discardable.}=
   var MovePath:seq[PossiChain] = @[]
+  var heuristic:seq[int]
   var hist:HashSet[seq[int]]
   var len:int = 0
-  #var start_state:MoveState = MoveState()
-  #start_state.move = 0
-  #start_state.state = data.board
-
-  #base.states = gen_possi(start_state)
-  #base.position = 0
-  #MovePath[len].states.n_states = 1
   MovePath.add(BaseState(data.board))
+  var minpath_heu:int= high(int)
+  var minpath:seq[PossiChain]
 
+  heuristic.add(manhatan_distance(data.board,solution_state))
   var local_state:  MoveState
   var last:  PossiChain 
+  var heuristic_path:int
 
   while true:
     last = MovePath[len]
+    heuristic_path = SumToInd(heuristic,len)
 
-    #echo "============================================"
-    #echo solution_state
-    #echo "++++++++++++++++++++++++++++++++++++++++++++"
-    #for i in items(last.states):
-    #  echo i.state
-    #echo "--------------------------------------------"
-    #for i in items(hist):
-    #  echo i
-    #echo "============================================"
     local_state = Get(last)
     if local_state == nil:
       MovePath[len] = nil
@@ -259,28 +222,98 @@ proc sec(data:Board):seq[ PossiChain]{.discardable.}=
         MovePath.add(tmp)
       else:
         MovePath[len]= tmp
-
-
-    #var tmp = readLine(stdin)
     if len  == 0:
       return MovePath
 
+proc SmartAppendToSeq[T](sq:var seq[T], item:T,ind:int)=
+  if ind >= sq.high():
+    if int(float(ind) * 1.3) == ind:
+      sq.setLen(ind+10)
+    else:
+      sq.setLen(int(float(ind) * 1.3))
+    sq[ind] = item
+  else:
+    sq[ind] = item
+
+proc chk(ite:MoveState,sq:seq[MoveState]):bool=
+  for l in items(sq):
+    echo ite.state 
+    echo l.state 
+    if ite.state == l.state:
+      return false
+  return true
+  
+var bef:HashSet[seq[int]]
+proc cpy(path,ans:var seq[MoveState],len:int)=
+  ans.setLen(len)
+  for i in 0..ans.high():
+    ans[i] = path[i]
+
+proc search(path:var seq[MoveState], g, bound,depth:int,ans_path:var seq[MoveState]):int=
+  var node = path[depth-1]
+  var f :int= g + manhatan_distance(node.state,solution_state)
+  if f > bound:
+    return f
+  if node.state  == solution_state:
+    ans_path = path 
+    ans_path.setLen(depth)
+    return FOUND
+  var min:int= high(int)
+  for succ in items(gen_possi(node).states):
+    if succ.state notin bef:
+      bef.incl(succ.state)
+      SmartAppendToSeq(path,succ,depth)
+      var res:int= search(path, g + 1, bound,depth+1,ans_path)
+      if res == FOUND: 
+        return FOUND
+      if res < min:
+        cpy(path,ans_path,depth+1)
+        min = res
+      bef.excl(succ.state)
+  return min
+
+proc ida_star(root:MoveState):seq[MoveState]=
+    var bound = 0#manhatan_distance(root.state,solution_state)
+    var path:seq[MoveState] = @[root]
+    var ans:seq[MoveState] = @[root]
+    while true:
+      var s_res = search(path, 0, bound,ans.high(),ans)
+      path = ans
+      for i in items(ans):
+        bef.incl(i.state)
+      if s_res == FOUND:
+        return ans
+      if s_res == high(int):
+        return @[]
+      bound = s_res
+
 if isMainModule:
-#  size = int (input())
-#  zero_pos = int(input())
-#  tmp_board = []
-#  for i in range(int((size+1)**0.5)):
-#    tmp_board.extend( [pl for pl in (input().split(" ")) if pl !=" "] )
-#  for i in range(len(tmp_board)):
-#    tmp_board[i]=int(tmp_board[i])
-#
-#
+  #var tmp_board:seq[int] = @[1,2,3,4,5,6,7,8,0]
+  #var tmp_board:seq[int] = @[2,3,1,6,5,0,8,7,4]
   var tmp_board:seq[int] = @[2,3,1,6,5,0,8,7,4]
+  #var tmp_board = toSeq(0..15)
+  randomize()
+  tmp_board.shuffle
   var zero_pos = 1
   var size = 8
+  var expl = true
   var sol:Board
-  sol.b_len = 9
+  sol.b_len = len(tmp_board)
   sol.board = tmp_board
-  sol.sol_state = gen_sol_state(8,-1)
-  var res = sol.sec()
+  sol.sol_state = gen_sol_state(tmp_board.high,-1)
+  var res =  BaseState(tmp_board).states[0].ida_star()
   for i in items(res):
+    if expl==true:
+      echo "====================="
+      PrintSquare(i.state)
+    case i.move:
+      of up:
+        echo "up"
+      of down:
+        echo "down"
+      of right:
+        echo "right"
+      of left:
+        echo "left"
+      else:
+        echo ""

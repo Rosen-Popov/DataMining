@@ -143,7 +143,6 @@ if isMainModule:
   tree_sequence = repeat(-1,res.entries[0].len)
   var tree:seq[node]=MakeDescTree(res,(TARGET_CLASS,AnySection),@[])
   tree_sequence = tree_sequence[0..<tree_sequence.minIndex()]
-  echo "with: ", ignore_classes," res is ", CheckTree(cross,TARGET_CLASS,tree)
+  echo "with ignoring: ", ignore_classes," res is ", CheckTree(cross,TARGET_CLASS,tree)
 
 
-  #echo CalcEntropyFeature(res,0,@[(0,1)])
